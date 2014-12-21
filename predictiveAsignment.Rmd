@@ -1,0 +1,63 @@
+---
+title: "Prediction Assignment"
+author: "abdimoh"
+date: "Sunday, December 21, 2014"
+output: html_document
+---
+
+#                  Prediction Assignment
+
+The data is based on Human Activity Recognition
+
+Getting the data and cleaning it
+
+```{r, echo=TRUE}
+
+#exc<-read.csv("pml-training.csv", stringsAsFactors = FALSE)
+exc<-read.csv("pml-training.csv")
+exc<-exc[,colSums(is.na(exc))<19000]
+exc<-exc[,colSums(exc != "") > 19000]
+exc<-exc[,-1]
+
+
+```
+
+
+Partitioning and preparing training and test data
+
+```{r, echo=TRUE}
+library(caret)
+library(kernlab)
+
+inTrain<-createDataPartition(y=exc$classe, p=0.75, list=FALSE)
+training<-exc[inTrain,]
+testing<-exc[-inTrain,]
+
+```
+
+The model is buit based on random forest and then tested on the test data. I tried the principal component as preprocessing and used glm, but got better results with random forest as the confusion matrix below shows.
+This model also predicted the automatic grading assignment correctly.
+
+
+```{r, echo=TRUE}
+library(randomForest)
+modelFit<-randomForest(classe ~ ., data=training, ntree=100, importance = TRUE, prox =FALSE)
+predictionrf <- predict(modelFit, testing)
+confusionMatrix(testing$classe, predictionrf)
+```
+
+Finally we apply the machine learning algorithm to the 20 test cases available in the test data submitted to the automatic grading
+```{r,echo=TRUE}
+exctest<-read.csv("pml-testing1.csv")
+exctest<-exctest[,colSums(is.na(exctest))<10]
+exctest<-exctest[,colSums(exctest != "") > 10]
+exctest<-exctest[,-1]
+
+levels(exctest$cvtd_timestamp)<-levels(training$cvtd_timestamp)
+levels(exctest$new_window)<-levels(training$new_window)
+
+
+test1predictionrf <- predict(modelFit, exctest)
+
+test1predictionrf
+
